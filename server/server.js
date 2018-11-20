@@ -4,12 +4,24 @@ const bodyParser = require('body-parser');
 const _ = require('lodash');
 
 
-var {ObjectID} = require('mongodb');
+var {
+    ObjectID
+} = require('mongodb');
 
 // Local imports
-var {mongoose} = require('./db/mongoose');
-var {Todo} = require('./models/todo');
-var {User} = require('./models/user');
+var {
+    mongoose
+} = require('./db/mongoose');
+var {
+    Todo
+} = require('./models/todo');
+var {
+    User
+} = require('./models/user');
+
+var {
+    authenticate
+} = require('./middleware/authenticate');
 
 var port = process.env.PORT || 3000;
 
@@ -124,23 +136,31 @@ app.patch('/todo/:id', (req, res) => {
 
 // Create User
 
-app.post('/users',(req,res) => {
+app.post('/users', (req, res) => {
 
-    var body = _.pick(req.body,['email','password']);
+    var body = _.pick(req.body, ['email', 'password']);
 
-    // var user = new User({
-    //     email:req.body.email,
-    //     password:req.body.password
-    // });
-
-    var user = new User({body});
-
-    user.save().then((user) => {
-        res.send(user);
-    }).catch((err) => {
-        res.status(400).send();
+    var user = new User({
+        email: req.body.email,
+        password: req.body.password
     });
 
+    // var user = new User({body});
+
+    user.save().then(() => {
+        return user.generateAuthToken();
+    }).then((token) => {
+        res.header('x-auth', token).send(user);
+    }).catch((err) => {
+        res.status(400).send(err);
+    });
+
+});
+
+
+
+app.get('/users/me', authenticate, (req, res) => {
+    res.send(req.user);
 });
 
 
